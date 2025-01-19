@@ -16,12 +16,14 @@ Including another URLconf
 """
 import uuid
 from django.contrib import admin
-from django.urls import path, register_converter
+from django.urls import path
 
-from apps.book_store_app.views import book_create, get_detail
+from apps.book_store_app.views import book_create, get_detail, get_books
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('create-book/', book_create, name='create-book'),
     path('get-book/<uuid:id>/', get_detail, name='get-book'),
+    path('get-books/', get_books, name='get-book'),
+    path('update_book/<uuid:id>/', book_create, name='update-book'),
 ]
