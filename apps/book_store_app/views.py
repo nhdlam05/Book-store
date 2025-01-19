@@ -1,9 +1,7 @@
 import datetime
-import uuid
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 
-from django.urls import register_converter
 from rest_framework import status
 from rest_framework.response import Response
 from .models import Book
@@ -25,18 +23,21 @@ def get_detail(request, id):
     return JsonResponse(serializer.data)
 
 @api_view(['PATCH'])
-def updateBook(self, request, *args, **kwargs):
-    print(kwargs.get('id'))
-    book = Book.objects.get(id=kwargs.get('id'))
+def update_book(self, request, *args, **kwargs):
+    book_id = kwargs.get('id')
+    print(book_id)
+    book = Book.objects.filter(id=book_id).first()
+    
     if not book:
         return Response({"error": "Book not found."}, status=status.HTTP_404_NOT_FOUND)
-    serializer = BookInputSerializer(book, data=request.data)
+    
+    serializer = BookInputSerializer(book, data=request.data, partial=True)
     
     if serializer.is_valid():
         serializer.save()
-        return Response(serializer.data)
+        return JsonResponse(serializer.data)
     else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['GET'])
 def get_books(request):
@@ -52,7 +53,7 @@ def get_books(request):
             published_date = datetime.strptime(published_date, '%Y-%m-%d')
             books = books.filter(published_date__gte=published_date)
         except ValueError:
-            return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
 
     title = request.query_params.get('title', None)
     if title:
@@ -64,8 +65,20 @@ def get_books(request):
             price = float(price)
             books = books.filter(price__gte=price)
         except ValueError:
-            return Response({"error": "Invalid price format."}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse({"error": "Invalid price format."}, status=status.HTTP_400_BAD_REQUEST)
 
     serializer = BookOutputSerializer(books, many=True)
-    return Response(serializer.data)
+    return JsonResponse(serializer.data)
+
+@api_view(['DELETE'])
+def delete_book(request, id):
+    book = get_object_or_404(Book, id=id)
+    book.delete()
+    return JsonResponse({"message": "Book deleted."}, status=204)
+
+@api_view(['DELETE'])
+def delete_book_by_author(request, author_id):
+    books = Book.objects.filter(author_id=author_id)
+    books.delete()
+    return JsonResponse({"message": "Books deleted."}, status=204)
 
